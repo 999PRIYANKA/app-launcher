@@ -20,6 +20,9 @@ export default {
           'dark-blue-light': '#1e40af',
           teal: '#14b8a6',
         },
+        'brand-dark-blue': '#0d2438',
+        'brand-dark-blue-light': '#1a3a5a',
+        'brand-teal': '#2dd4bf',
       },
       fontFamily: {
         'sans': ['Work Sans', 'sans-serif'],
