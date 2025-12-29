@@ -4,8 +4,8 @@ import tailwindcss from "@tailwindcss/vite";
 import { copyFileSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [react()],
-  base: '/app-launcher/',
-});
+  base: command === "build" ? "/app-launcher/" : "/",
+}));
 
