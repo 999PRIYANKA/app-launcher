@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { StandardListView } from '../../components/shared/StandardListView';
+import DataTable from '../../../../components/common/DataTable';
+import SearchBox from '../../../../components/common/SearchBox';
+import Pagination from '../../../../components/common/Pagination';
 import RecordPanelLayout from '../../components/shared/RecordPanelLayout';
 import SectionCard from '../../components/shared/SectionCard';
 import { 
@@ -62,47 +64,135 @@ const MOCK_VMS = [
 
 export const VoicemailsList = () => {
   const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const headers = [
+    { 
+      value: 'from', 
+      label: 'From',
+      render: (item) => (
+        <div className="flex items-center space-x-3">
+          <div className={`w-2 h-2 rounded-full ${item.status === 'unread' ? 'bg-blue-600' : 'bg-transparent'}`}></div>
+          <span className="font-bold text-slate-900">{item.from_number}</span>
+        </div>
+      )
+    },
+    { value: 'created_at', label: 'Received At' },
+    { 
+      value: 'duration', 
+      label: 'Duration',
+      render: (item) => (
+        <span className="font-mono text-xs font-bold bg-slate-100 px-2 py-1 rounded">
+          0:{item.duration.toString().padStart(2, '0')}
+        </span>
+      )
+    },
+    { 
+      value: 'status', 
+      label: 'Status',
+      render: (item) => (
+        <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
+          item.status === 'unread' ? 'bg-blue-100 text-blue-700' : 
+          item.status === 'read' ? 'bg-slate-100 text-slate-500' : 'bg-orange-100 text-orange-700'
+        }`}>
+          {item.status}
+        </span>
+      )
+    },
+  ];
+
+  const filteredData = useMemo(() => {
+    if (!searchTerm.trim()) return MOCK_VMS;
+    return MOCK_VMS.filter((item) =>
+      Object.values(item).some(
+        (val) =>
+          val !== null &&
+          val !== undefined &&
+          String(val).toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    );
+  }, [searchTerm]);
+
+  // Reset to page 1 when search term changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  // Calculate pagination
+  const totalItems = filteredData.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedData = filteredData.slice(startIndex, endIndex);
+
+  const pagination = useMemo(() => ({
+    currentPage,
+    totalPages,
+    totalItems,
+    itemsPerPage,
+    hasNextPage: currentPage < totalPages,
+    hasPrevPage: currentPage > 1,
+  }), [currentPage, totalPages, totalItems]);
+
+  const handlePageChange = useCallback((newPage) => {
+    if (newPage >= 1 && newPage <= totalPages && newPage !== currentPage) {
+      setCurrentPage(newPage);
+    }
+  }, [totalPages, currentPage]);
+
+  const handlePrevPage = useCallback(() => {
+    if (pagination.hasPrevPage) {
+      setCurrentPage(currentPage - 1);
+    }
+  }, [pagination.hasPrevPage, currentPage]);
+
+  const handleNextPage = useCallback(() => {
+    if (pagination.hasNextPage) {
+      setCurrentPage(currentPage + 1);
+    }
+  }, [pagination.hasNextPage, currentPage]);
+
   return (
-    <div className="p-6 h-full">
-      <StandardListView
-        title="Voicemails"
-        data={MOCK_VMS}
+    <div className="p-6 h-full space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 style={{ fontSize: "1.75rem" }} className="font-bold text-gray-800">
+          Voicemails
+        </h2>
+        
+      </div>
+      <div className="flex gap-3 items-center">
+        <SearchBox
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search voicemails by from number, status..."
+          style={{
+            width: "600px",
+            minWidth: "400px",
+            height: "2rem",
+          }}
+          showSearchButton={true}
+          onSearch={() => {}}
+        />
+        <button className="text-sm font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-tighter">
+          Mark All as Read
+        </button>
+      </div>
+      <DataTable
+        headers={headers}
+        data={paginatedData}
         onRowClick={(item) => navigate(`${APP_ROUTES.CRM_CONNECT.VOICEMAILS}/${item.id}`)}
-        columns={[
-          { 
-            header: 'From', 
-            accessor: (item) => (
-              <div className="flex items-center space-x-3">
-                <div className={`w-2 h-2 rounded-full ${item.status === 'unread' ? 'bg-blue-600' : 'bg-transparent'}`}></div>
-                <span className="font-bold text-slate-900">{item.from_number}</span>
-              </div>
-            ),
-            className: 'w-64'
-          },
-          { header: 'Received At', accessor: 'created_at' },
-          { 
-            header: 'Duration', 
-            accessor: (item) => (
-              <span className="font-mono text-xs font-bold bg-slate-100 px-2 py-1 rounded">
-                0:{item.duration.toString().padStart(2, '0')}
-              </span>
-            )
-          },
-          { 
-            header: 'Status', 
-            accessor: (item) => (
-              <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
-                item.status === 'unread' ? 'bg-blue-100 text-blue-700' : 
-                item.status === 'read' ? 'bg-slate-100 text-slate-500' : 'bg-orange-100 text-orange-700'
-              }`}>
-                {item.status}
-              </span>
-            )
-          },
-        ]}
-        actions={
-          <button className="text-sm font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-tighter">Mark All as Read</button>
-        }
+        emptyMessage="No voicemails found"
+      />
+      <Pagination
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        hasNextPage={pagination.hasNextPage}
+        hasPrevPage={pagination.hasPrevPage}
+        onPageChange={handlePageChange}
+        onPrevPage={handlePrevPage}
+        onNextPage={handleNextPage}
       />
     </div>
   );

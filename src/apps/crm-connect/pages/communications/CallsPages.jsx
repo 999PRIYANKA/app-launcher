@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { StandardListView } from '../../components/shared/StandardListView';
+import DataTable from '../../../../components/common/DataTable';
+import SearchBox from '../../../../components/common/SearchBox';
+import Pagination from '../../../../components/common/Pagination';
 import RecordPanelLayout from '../../components/shared/RecordPanelLayout';
 import SectionCard from '../../components/shared/SectionCard';
 import { 
@@ -295,88 +297,172 @@ const CallDetailView = ({ id }) => {
 export const CallsList = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   if (id) {
     return <CallDetailView id={id} />;
   }
 
+  const headers = [
+    { value: 'started_at', label: 'Started At' },
+    { 
+      value: 'contact', 
+      label: 'Contact',
+      render: (item) => (
+        <div className="flex flex-col">
+          <span className="font-bold text-slate-900">
+            {item.direction === 'inbound' ? item.caller_number : item.callee_number}
+          </span>
+          <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">
+            {item.direction === 'inbound' ? 'Caller' : 'Dialed'}
+          </span>
+        </div>
+      )
+    },
+    { 
+      value: 'direction', 
+      label: 'Direction',
+      render: (item) => (
+        <div className="flex items-center space-x-2">
+          {item.direction === 'inbound' ? (
+            <div className="flex items-center text-green-600 bg-green-50 px-2 py-1 rounded-md text-[10px] font-bold">
+              <ArrowDownLeftIcon className="w-3 h-3 mr-1" /> INBOUND
+            </div>
+          ) : (
+            <div className="flex items-center text-blue-600 bg-blue-50 px-2 py-1 rounded-md text-[10px] font-bold">
+              <ArrowUpRightIcon className="w-3 h-3 mr-1" /> OUTBOUND
+            </div>
+          )}
+        </div>
+      )
+    },
+    { 
+      value: 'duration', 
+      label: 'Duration',
+      render: (item) => `${Math.floor(item.duration / 60)}:${(item.duration % 60).toString().padStart(2, '0')}`
+    },
+    { 
+      value: 'status', 
+      label: 'Status',
+      render: (item) => (
+        <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
+          item.status === 'completed' ? 'bg-green-100 text-green-700' : 
+          item.status === 'missed' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'
+        }`}>
+          {item.status}
+        </span>
+      )
+    },
+    { 
+      value: 'action', 
+      label: 'Action',
+      render: (item) => (
+        <button 
+          onClick={(e) => { 
+            e.stopPropagation(); 
+            window.dispatchEvent(new CustomEvent('CRM_DIAL', { detail: { number: item.direction === 'inbound' ? item.caller_number : item.callee_number } }));
+          }}
+          className="p-2 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-all"
+          title="Call Back"
+        >
+          <PhoneIcon className="w-4 h-4" />
+        </button>
+      )
+    },
+  ];
+
+  const filteredData = useMemo(() => {
+    if (!searchTerm.trim()) return MOCK_CALLS;
+    return MOCK_CALLS.filter((item) =>
+      Object.values(item).some(
+        (val) =>
+          val !== null &&
+          val !== undefined &&
+          String(val).toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    );
+  }, [searchTerm]);
+
+  // Reset to page 1 when search term changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  // Calculate pagination
+  const totalItems = filteredData.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedData = filteredData.slice(startIndex, endIndex);
+
+  const pagination = useMemo(() => ({
+    currentPage,
+    totalPages,
+    totalItems,
+    itemsPerPage,
+    hasNextPage: currentPage < totalPages,
+    hasPrevPage: currentPage > 1,
+  }), [currentPage, totalPages, totalItems]);
+
+  const handlePageChange = useCallback((newPage) => {
+    if (newPage >= 1 && newPage <= totalPages && newPage !== currentPage) {
+      setCurrentPage(newPage);
+    }
+  }, [totalPages, currentPage]);
+
+  const handlePrevPage = useCallback(() => {
+    if (pagination.hasPrevPage) {
+      setCurrentPage(currentPage - 1);
+    }
+  }, [pagination.hasPrevPage, currentPage]);
+
+  const handleNextPage = useCallback(() => {
+    if (pagination.hasNextPage) {
+      setCurrentPage(currentPage + 1);
+    }
+  }, [pagination.hasNextPage, currentPage]);
+
   return (
-    <div className="p-6 h-full">
-      <StandardListView
-        title="Call Logs"
-        data={MOCK_CALLS}
+    <div className="p-6 h-full space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 style={{ fontSize: "1.75rem" }} className="font-bold text-gray-800">
+          Call Logs
+        </h2>
+        
+      </div>
+      <div className="flex gap-3 items-center">
+        <SearchBox
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search call logs by contact, direction, status..."
+          style={{
+            width: "600px",
+            minWidth: "400px",
+            height: "2rem",
+          }}
+          showSearchButton={true}
+          onSearch={() => {}}
+        />
+        <button className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-colors">
+          Export Logs
+        </button>
+      </div>
+      <DataTable
+        headers={headers}
+        data={paginatedData}
         onRowClick={(item) => navigate(`${APP_ROUTES.CRM_CONNECT.CALLS}/${item.id}`)}
-        columns={[
-          { 
-            header: 'Started At', 
-            accessor: 'started_at',
-            className: 'w-48'
-          },
-          { 
-            header: 'Contact', 
-            accessor: (item) => (
-              <div className="flex flex-col">
-                <span className="font-bold text-slate-900">
-                  {item.direction === 'inbound' ? item.caller_number : item.callee_number}
-                </span>
-                <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">
-                  {item.direction === 'inbound' ? 'Caller' : 'Dialed'}
-                </span>
-              </div>
-            )
-          },
-          { 
-            header: 'Direction', 
-            accessor: (item) => (
-              <div className="flex items-center space-x-2">
-                {item.direction === 'inbound' ? (
-                  <div className="flex items-center text-green-600 bg-green-50 px-2 py-1 rounded-md text-[10px] font-bold">
-                    <ArrowDownLeftIcon className="w-3 h-3 mr-1" /> INBOUND
-                  </div>
-                ) : (
-                  <div className="flex items-center text-blue-600 bg-blue-50 px-2 py-1 rounded-md text-[10px] font-bold">
-                    <ArrowUpRightIcon className="w-3 h-3 mr-1" /> OUTBOUND
-                  </div>
-                )}
-              </div>
-            )
-          },
-          { 
-            header: 'Duration', 
-            accessor: (item) => `${Math.floor(item.duration / 60)}:${(item.duration % 60).toString().padStart(2, '0')}`
-          },
-          { 
-            header: 'Status', 
-            accessor: (item) => (
-              <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
-                item.status === 'completed' ? 'bg-green-100 text-green-700' : 
-                item.status === 'missed' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'
-              }`}>
-                {item.status}
-              </span>
-            )
-          },
-          { 
-            header: 'Action', 
-            accessor: (item) => (
-              <button 
-                onClick={(e) => { 
-                  e.stopPropagation(); 
-                  window.dispatchEvent(new CustomEvent('CRM_DIAL', { detail: { number: item.direction === 'inbound' ? item.caller_number : item.callee_number } }));
-                }}
-                className="p-2 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-all"
-                title="Call Back"
-              >
-                <PhoneIcon className="w-4 h-4" />
-              </button>
-            )
-          },
-        ]}
-        actions={
-          <button className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-colors">
-            Export Logs
-          </button>
-        }
+        emptyMessage="No call logs found"
+      />
+      <Pagination
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        hasNextPage={pagination.hasNextPage}
+        hasPrevPage={pagination.hasPrevPage}
+        onPageChange={handlePageChange}
+        onPrevPage={handlePrevPage}
+        onNextPage={handleNextPage}
       />
     </div>
   );

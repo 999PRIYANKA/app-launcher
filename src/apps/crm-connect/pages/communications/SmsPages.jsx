@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { StandardListView } from '../../components/shared/StandardListView';
+import DataTable from '../../../../components/common/DataTable';
+import SearchBox from '../../../../components/common/SearchBox';
+import Pagination from '../../../../components/common/Pagination';
 import RecordPanelLayout from '../../components/shared/RecordPanelLayout';
 import SectionCard from '../../components/shared/SectionCard';
 import { ChatBubbleOvalLeftIcon, ArrowUpRightIcon, ArrowDownLeftIcon, UserGroupIcon } from '../../../../constants/icons';
@@ -15,59 +17,156 @@ const MOCK_SMS_LOGS = [
 
 export const SmsLogsList = () => {
   const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const headers = [
+    { value: 'timestamp', label: 'Timestamp' },
+    { 
+      value: 'contact', 
+      label: 'Contact',
+      render: (item) => (
+        <div className="flex flex-col">
+          <span className="font-bold text-slate-900">{item.contact_name || 'Unknown'}</span>
+          <span className="text-[10px] text-slate-500">{item.contact_number}</span>
+        </div>
+      )
+    },
+    { 
+      value: 'direction', 
+      label: 'Direction',
+      render: (item) => (
+        <div className="flex items-center space-x-2">
+          {item.direction === 'inbound' ? (
+            <div className="flex items-center text-green-600 bg-green-50 px-2 py-1 rounded-md text-[10px] font-bold">
+              <ArrowDownLeftIcon className="w-3 h-3 mr-1" /> INBOUND
+            </div>
+          ) : (
+            <div className="flex items-center text-blue-600 bg-blue-50 px-2 py-1 rounded-md text-[10px] font-bold">
+              <ArrowUpRightIcon className="w-3 h-3 mr-1" /> OUTBOUND
+            </div>
+          )}
+        </div>
+      )
+    },
+    { 
+      value: 'body', 
+      label: 'Message Body',
+      render: (item) => (
+        <div className="text-slate-600" style={{ 
+          overflow: 'hidden', 
+          textOverflow: 'ellipsis', 
+          whiteSpace: 'nowrap',
+          width: '100%'
+        }}>
+          {item.body}
+        </div>
+      )
+    },
+    { 
+      value: 'status', 
+      label: 'Status',
+      render: (item) => (
+        <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${
+          item.status === 'delivered' || item.status === 'read' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
+        }`}>
+          {item.status}
+        </span>
+      )
+    },
+  ];
+
+  const filteredData = useMemo(() => {
+    if (!searchTerm.trim()) return MOCK_SMS_LOGS;
+    return MOCK_SMS_LOGS.filter((item) =>
+      Object.values(item).some(
+        (val) =>
+          val !== null &&
+          val !== undefined &&
+          String(val).toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    );
+  }, [searchTerm]);
+
+  // Reset to page 1 when search term changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  // Calculate pagination
+  const totalItems = filteredData.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedData = filteredData.slice(startIndex, endIndex);
+
+  const pagination = useMemo(() => ({
+    currentPage,
+    totalPages,
+    totalItems,
+    itemsPerPage,
+    hasNextPage: currentPage < totalPages,
+    hasPrevPage: currentPage > 1,
+  }), [currentPage, totalPages, totalItems]);
+
+  const handlePageChange = useCallback((newPage) => {
+    if (newPage >= 1 && newPage <= totalPages && newPage !== currentPage) {
+      setCurrentPage(newPage);
+    }
+  }, [totalPages, currentPage]);
+
+  const handlePrevPage = useCallback(() => {
+    if (pagination.hasPrevPage) {
+      setCurrentPage(currentPage - 1);
+    }
+  }, [pagination.hasPrevPage, currentPage]);
+
+  const handleNextPage = useCallback(() => {
+    if (pagination.hasNextPage) {
+      setCurrentPage(currentPage + 1);
+    }
+  }, [pagination.hasNextPage, currentPage]);
+
   return (
-    <div className="p-6 h-full">
-      <StandardListView
-        title="SMS Logs"
-        data={MOCK_SMS_LOGS}
+    <div className="p-6 h-full space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 style={{ fontSize: "1.75rem" }} className="font-bold text-gray-800">
+          SMS Logs
+        </h2>
+        
+      </div>
+      <div className="flex gap-3 items-center">
+        <SearchBox
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search SMS logs by contact, message body, status..."
+          style={{
+            width: "600px",
+            minWidth: "400px",
+            height: "2rem",
+          }}
+          showSearchButton={true}
+          onSearch={() => {}}
+        />
+        <button className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-colors">
+          Compose SMS
+        </button>
+      </div>
+      <DataTable
+        headers={headers}
+        data={paginatedData}
         onRowClick={(item) => navigate(`${APP_ROUTES.CRM_CONNECT.SMS}/${item.id}`)}
-        columns={[
-          { header: 'Timestamp', accessor: 'timestamp', className: 'w-48' },
-          { 
-            header: 'Contact', 
-            accessor: (item) => (
-              <div className="flex flex-col">
-                <span className="font-bold text-slate-900">{item.contact_name || 'Unknown'}</span>
-                <span className="text-[10px] text-slate-500">{item.contact_number}</span>
-              </div>
-            )
-          },
-          { 
-            header: 'Direction', 
-            accessor: (item) => (
-              <div className="flex items-center space-x-2">
-                {item.direction === 'inbound' ? (
-                  <div className="flex items-center text-green-600 bg-green-50 px-2 py-1 rounded-md text-[10px] font-bold">
-                    <ArrowDownLeftIcon className="w-3 h-3 mr-1" /> INBOUND
-                  </div>
-                ) : (
-                  <div className="flex items-center text-blue-600 bg-blue-50 px-2 py-1 rounded-md text-[10px] font-bold">
-                    <ArrowUpRightIcon className="w-3 h-3 mr-1" /> OUTBOUND
-                  </div>
-                )}
-              </div>
-            )
-          },
-          { 
-            header: 'Message Body', 
-            accessor: (item) => <div className="max-w-md truncate text-slate-600">{item.body}</div> 
-          },
-          { 
-            header: 'Status', 
-            accessor: (item) => (
-              <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${
-                item.status === 'delivered' || item.status === 'read' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
-              }`}>
-                {item.status}
-              </span>
-            )
-          },
-        ]}
-        actions={
-          <button className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-colors">
-            Compose SMS
-          </button>
-        }
+        emptyMessage="No SMS logs found"
+      />
+      <Pagination
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        hasNextPage={pagination.hasNextPage}
+        hasPrevPage={pagination.hasPrevPage}
+        onPageChange={handlePageChange}
+        onPrevPage={handlePrevPage}
+        onNextPage={handleNextPage}
       />
     </div>
   );

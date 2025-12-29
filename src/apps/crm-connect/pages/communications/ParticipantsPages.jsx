@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { StandardListView } from '../../components/shared/StandardListView';
+import DataTable from '../../../../components/common/DataTable';
+import SearchBox from '../../../../components/common/SearchBox';
+import Pagination from '../../../../components/common/Pagination';
 import RecordPanelLayout from '../../components/shared/RecordPanelLayout';
 import SectionCard from '../../components/shared/SectionCard';
 import { 
@@ -129,6 +131,118 @@ let MOCK_USERS = [
 
 export const ParticipantsList = () => {
   const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const headers = [
+    { 
+      value: 'user', 
+      label: 'User',
+      render: (item) => (
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-600 border border-slate-200">
+            {item.user_name.split(' ').map(n => n[0]).join('')}
+          </div>
+          <div className="flex flex-col">
+            <span className="font-bold text-slate-900">{item.user_name}</span>
+            <span className="text-[10px] text-slate-400 font-medium">{item.user_email}</span>
+          </div>
+        </div>
+      )
+    },
+    { 
+      value: 'status', 
+      label: 'Softphone Access',
+      render: (item) => (
+        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${
+          item.status === 'enabled' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-slate-50 text-slate-400 border-slate-200'
+        }`}>
+          {item.status}
+        </span>
+      )
+    },
+    { 
+      value: 'role', 
+      label: 'Role',
+      render: (item) => (
+        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest bg-indigo-50 text-indigo-700 border border-indigo-100">
+          {item.role}
+        </span>
+      )
+    },
+    { 
+      value: 'primary_number', 
+      label: 'Primary Number',
+      render: (item) => {
+        const pn = MOCK_PHONE_NUMBERS.find(n => n.id === item.primary_phone_number_id);
+        return <span className="text-xs font-medium text-slate-600">{pn ? pn.display_number : 'Unassigned'}</span>;
+      }
+    },
+    { 
+      value: 'active_numbers_count', 
+      label: 'Assigned Numbers',
+      render: (item) => (
+        <span className="text-xs font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md">{item.active_numbers_count}</span>
+      )
+    },
+    { 
+      value: 'last_number_change_at', 
+      label: 'Last Change',
+      render: (item) => <span className="text-xs text-slate-400">{item.last_number_change_at || '—'}</span>
+    }
+  ];
+
+  const filteredData = useMemo(() => {
+    if (!searchTerm.trim()) return MOCK_USERS;
+    return MOCK_USERS.filter((item) =>
+      Object.values(item).some(
+        (val) =>
+          val !== null &&
+          val !== undefined &&
+          String(val).toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    );
+  }, [searchTerm]);
+
+  // Reset to page 1 when search term changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  // Calculate pagination
+  const totalItems = filteredData.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedData = filteredData.slice(startIndex, endIndex);
+
+  const pagination = useMemo(() => ({
+    currentPage,
+    totalPages,
+    totalItems,
+    itemsPerPage,
+    hasNextPage: currentPage < totalPages,
+    hasPrevPage: currentPage > 1,
+  }), [currentPage, totalPages, totalItems]);
+
+  const handlePageChange = useCallback((newPage) => {
+    if (newPage >= 1 && newPage <= totalPages && newPage !== currentPage) {
+      setCurrentPage(newPage);
+    }
+  }, [totalPages, currentPage]);
+
+  const handlePrevPage = useCallback(() => {
+    if (pagination.hasPrevPage) {
+      setCurrentPage(currentPage - 1);
+    }
+  }, [pagination.hasPrevPage, currentPage]);
+
+  const handleNextPage = useCallback(() => {
+    if (pagination.hasNextPage) {
+      setCurrentPage(currentPage + 1);
+    }
+  }, [pagination.hasNextPage, currentPage]);
 
   return (
     <div className="p-6 h-full space-y-6">
@@ -137,69 +251,39 @@ export const ParticipantsList = () => {
           <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Administration</h2>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Softphone Users</h1>
         </div>
+        
       </div>
-
-      <StandardListView
-        title="User Registry"
-        data={MOCK_USERS}
+      <div className="flex gap-3 items-center">
+        <SearchBox
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search users by name, email, role, status..."
+          style={{
+            width: "600px",
+            minWidth: "400px",
+            height: "2rem",
+          }}
+          showSearchButton={true}
+          onSearch={() => {}}
+        />
+        <button className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-colors">
+          Add User Access
+        </button>
+      </div>
+      <DataTable
+        headers={headers}
+        data={paginatedData}
         onRowClick={(item) => navigate(`${APP_ROUTES.CRM_CONNECT.PARTICIPANTS}/${item.user_id}`)}
-        columns={[
-          { 
-            header: 'User', 
-            accessor: (item) => (
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-600 border border-slate-200">
-                  {item.user_name.split(' ').map(n => n[0]).join('')}
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-bold text-slate-900">{item.user_name}</span>
-                  <span className="text-[10px] text-slate-400 font-medium">{item.user_email}</span>
-                </div>
-              </div>
-            ),
-            className: 'w-64'
-          },
-          { 
-            header: 'Softphone Access', 
-            accessor: (item) => (
-              <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${
-                item.status === 'enabled' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-slate-50 text-slate-400 border-slate-200'
-              }`}>
-                {item.status}
-              </span>
-            )
-          },
-          { 
-            header: 'Role', 
-            accessor: (item) => (
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest bg-indigo-50 text-indigo-700 border border-indigo-100">
-                {item.role}
-              </span>
-            )
-          },
-          { 
-            header: 'Primary Number', 
-            accessor: (item) => {
-              const pn = MOCK_PHONE_NUMBERS.find(n => n.id === item.primary_phone_number_id);
-              return <span className="text-xs font-medium text-slate-600">{pn ? pn.display_number : 'Unassigned'}</span>;
-            }
-          },
-          { 
-            header: 'Assigned Numbers', 
-            accessor: (item) => (
-              <span className="text-xs font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md">{item.active_numbers_count}</span>
-            )
-          },
-          { 
-            header: 'Last Change', 
-            accessor: (item) => <span className="text-xs text-slate-400">{item.last_number_change_at || '—'}</span>
-          }
-        ]}
-        actions={
-          <button className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-colors">
-            Add User Access
-          </button>
-        }
+        emptyMessage="No users found"
+      />
+      <Pagination
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        hasNextPage={pagination.hasNextPage}
+        hasPrevPage={pagination.hasPrevPage}
+        onPageChange={handlePageChange}
+        onPrevPage={handlePrevPage}
+        onNextPage={handleNextPage}
       />
     </div>
   );

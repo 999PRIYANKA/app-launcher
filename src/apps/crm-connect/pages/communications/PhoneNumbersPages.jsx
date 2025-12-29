@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { StandardListView } from '../../components/shared/StandardListView';
+import DataTable from '../../../../components/common/DataTable';
+import SearchBox from '../../../../components/common/SearchBox';
+import Pagination from '../../../../components/common/Pagination';
 import RecordPanelLayout from '../../components/shared/RecordPanelLayout';
 import SectionCard from '../../components/shared/SectionCard';
 import { PhoneIcon, InformationCircleIcon, ClockIcon } from '../../../../constants/icons';
@@ -63,35 +65,127 @@ let MOCK_NUMBERS = [
 export const PhoneNumbersList = () => {
   const navigate = useNavigate();
   const [data] = useState(() => MOCK_NUMBERS);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const headers = [
+    { value: 'display_number', label: 'Number' },
+    { value: 'label', label: 'Label' },
+    { 
+      value: 'provider', 
+      label: 'Provider',
+      render: (item) => <span className="capitalize">{item.provider}</span>
+    },
+    { 
+      value: 'type', 
+      label: 'Type',
+      render: (item) => item.type.toUpperCase()
+    },
+    { 
+      value: 'status', 
+      label: 'Status',
+      render: (item) => (
+        <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${item.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-700'}`}>
+          {item.status}
+        </span>
+      )
+    },
+  ];
+
+  const filteredData = useMemo(() => {
+    if (!searchTerm.trim()) return data;
+    return data.filter((item) =>
+      Object.values(item).some(
+        (val) =>
+          val !== null &&
+          val !== undefined &&
+          String(val).toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    );
+  }, [searchTerm, data]);
+
+  // Reset to page 1 when search term changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  // Calculate pagination
+  const totalItems = filteredData.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedData = filteredData.slice(startIndex, endIndex);
+
+  const pagination = useMemo(() => ({
+    currentPage,
+    totalPages,
+    totalItems,
+    itemsPerPage,
+    hasNextPage: currentPage < totalPages,
+    hasPrevPage: currentPage > 1,
+  }), [currentPage, totalPages, totalItems]);
+
+  const handlePageChange = useCallback((newPage) => {
+    if (newPage >= 1 && newPage <= totalPages && newPage !== currentPage) {
+      setCurrentPage(newPage);
+    }
+  }, [totalPages, currentPage]);
+
+  const handlePrevPage = useCallback(() => {
+    if (pagination.hasPrevPage) {
+      setCurrentPage(currentPage - 1);
+    }
+  }, [pagination.hasPrevPage, currentPage]);
+
+  const handleNextPage = useCallback(() => {
+    if (pagination.hasNextPage) {
+      setCurrentPage(currentPage + 1);
+    }
+  }, [pagination.hasNextPage, currentPage]);
 
   return (
-    <div className="p-6 h-full">
-      <StandardListView
-        title="Phone Numbers"
-        data={data}
+    <div className="p-6 h-full space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 style={{ fontSize: "1.75rem" }} className="font-bold text-gray-800">
+          Phone Numbers
+        </h2>
+        
+      </div>
+      <div className="flex gap-3 items-center">
+        <SearchBox
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search phone numbers by number, label, provider, status..."
+          style={{
+            width: "600px",
+            minWidth: "400px",
+            height: "2rem",
+          }}
+          showSearchButton={true}
+          onSearch={() => {}}
+        />
+        <button 
+          onClick={() => navigate(`${APP_ROUTES.CRM_CONNECT.PHONE_NUMBERS}/new`)}
+          className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-colors"
+        >
+          + Add Number
+        </button>
+      </div>
+      <DataTable
+        headers={headers}
+        data={paginatedData}
         onRowClick={(item) => navigate(`${APP_ROUTES.CRM_CONNECT.PHONE_NUMBERS}/${item.id}`)}
-        columns={[
-          { header: 'Number', accessor: 'display_number', className: 'font-medium' },
-          { header: 'Label', accessor: 'label' },
-          { header: 'Provider', accessor: (item) => <span className="capitalize">{item.provider}</span> },
-          { header: 'Type', accessor: (item) => item.type.toUpperCase() },
-          { 
-            header: 'Status', 
-            accessor: (item) => (
-              <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${item.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-700'}`}>
-                {item.status}
-              </span>
-            )
-          },
-        ]}
-        actions={
-          <button 
-            onClick={() => navigate(`${APP_ROUTES.CRM_CONNECT.PHONE_NUMBERS}/new`)}
-            className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-colors"
-          >
-            + Add Number
-          </button>
-        }
+        emptyMessage="No phone numbers found"
+      />
+      <Pagination
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        hasNextPage={pagination.hasNextPage}
+        hasPrevPage={pagination.hasPrevPage}
+        onPageChange={handlePageChange}
+        onPrevPage={handlePrevPage}
+        onNextPage={handleNextPage}
       />
     </div>
   );

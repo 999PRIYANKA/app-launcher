@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { StandardListView } from '../../components/shared/StandardListView';
+import DataTable from '../../../../components/common/DataTable';
+import SearchBox from '../../../../components/common/SearchBox';
+import Pagination from '../../../../components/common/Pagination';
 import RecordPanelLayout from '../../components/shared/RecordPanelLayout';
 import SectionCard from '../../components/shared/SectionCard';
 import { 
@@ -65,6 +67,9 @@ const MOCK_RECORDINGS = [
 
 export const RecordingsList = () => {
   const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const renderSentiment = (sentiment) => {
     const colors = {
@@ -79,64 +84,154 @@ export const RecordingsList = () => {
     );
   };
 
+  const headers = [
+    { 
+      value: 'timestamp', 
+      label: 'Timestamp',
+      render: (item) => (
+        <div className="flex items-center space-x-3">
+          <div className="p-2 bg-slate-100 rounded-lg">
+            <ClockIcon className="w-4 h-4 text-slate-500" />
+          </div>
+          <span className="font-medium text-slate-700">{item.created_at}</span>
+        </div>
+      )
+    },
+    { 
+      value: 'agent', 
+      label: 'Agent',
+      render: (item) => (
+        <div className="flex items-center space-x-2">
+          <div className="w-7 h-7 bg-indigo-600 text-white rounded-full flex items-center justify-center text-[10px] font-bold">
+            {item.agent_initials}
+          </div>
+          <span className="text-sm font-semibold">{item.agent_name}</span>
+        </div>
+      )
+    },
+    { 
+      value: 'contact', 
+      label: 'Contact',
+      render: (item) => (
+        <div className="flex flex-col">
+          <span className="font-bold text-slate-900">{item.customer_display}</span>
+          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Verified Contact</span>
+        </div>
+      )
+    },
+    { 
+      value: 'sentiment', 
+      label: 'Sentiment',
+      render: (item) => renderSentiment(item.sentiment)
+    },
+    { 
+      value: 'duration', 
+      label: 'Duration',
+      render: (item) => (
+        <span className="font-mono text-xs font-bold bg-slate-100 px-2 py-1 rounded">
+          {Math.floor(item.duration / 60)}:{(item.duration % 60).toString().padStart(2, '0')}
+        </span>
+      )
+    },
+    { 
+      value: 'status', 
+      label: 'Status',
+      render: (item) => (
+        <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest ${
+          item.status === 'available' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-50 text-amber-700'
+        }`}>
+          {item.status}
+        </span>
+      )
+    },
+  ];
+
+  const filteredData = useMemo(() => {
+    if (!searchTerm.trim()) return MOCK_RECORDINGS;
+    return MOCK_RECORDINGS.filter((item) =>
+      Object.values(item).some(
+        (val) =>
+          val !== null &&
+          val !== undefined &&
+          String(val).toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    );
+  }, [searchTerm]);
+
+  // Reset to page 1 when search term changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  // Calculate pagination
+  const totalItems = filteredData.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedData = filteredData.slice(startIndex, endIndex);
+
+  const pagination = useMemo(() => ({
+    currentPage,
+    totalPages,
+    totalItems,
+    itemsPerPage,
+    hasNextPage: currentPage < totalPages,
+    hasPrevPage: currentPage > 1,
+  }), [currentPage, totalPages, totalItems]);
+
+  const handlePageChange = useCallback((newPage) => {
+    if (newPage >= 1 && newPage <= totalPages && newPage !== currentPage) {
+      setCurrentPage(newPage);
+    }
+  }, [totalPages, currentPage]);
+
+  const handlePrevPage = useCallback(() => {
+    if (pagination.hasPrevPage) {
+      setCurrentPage(currentPage - 1);
+    }
+  }, [pagination.hasPrevPage, currentPage]);
+
+  const handleNextPage = useCallback(() => {
+    if (pagination.hasNextPage) {
+      setCurrentPage(currentPage + 1);
+    }
+  }, [pagination.hasNextPage, currentPage]);
+
   return (
-    <div className="p-6 h-full">
-      <StandardListView
-        title="Call Recordings"
-        data={MOCK_RECORDINGS}
+    <div className="p-6 h-full space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 style={{ fontSize: "1.75rem" }} className="font-bold text-gray-800">
+          Call Recordings
+        </h2>
+      </div>
+      <div className="flex gap-3 items-center">
+        <SearchBox
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search recordings by agent, contact, sentiment, status..."
+          style={{
+            width: "600px",
+            minWidth: "400px",
+            height: "2rem",
+          }}
+          showSearchButton={true}
+          onSearch={() => {}}
+        />
+      </div>
+      <DataTable
+        headers={headers}
+        data={paginatedData}
         onRowClick={(item) => navigate(`${APP_ROUTES.CRM_CONNECT.RECORDINGS}/${item.id}`)}
-        columns={[
-          { 
-            header: 'Timestamp', 
-            accessor: (item) => (
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-slate-100 rounded-lg">
-                  <ClockIcon className="w-4 h-4 text-slate-500" />
-                </div>
-                <span className="font-medium text-slate-700">{item.created_at}</span>
-              </div>
-            )
-          },
-          { 
-            header: 'Agent', 
-            accessor: (item) => (
-              <div className="flex items-center space-x-2">
-                <div className="w-7 h-7 bg-indigo-600 text-white rounded-full flex items-center justify-center text-[10px] font-bold">
-                  {item.agent_initials}
-                </div>
-                <span className="text-sm font-semibold">{item.agent_name}</span>
-              </div>
-            )
-          },
-          { 
-            header: 'Contact', 
-            accessor: (item) => (
-              <div className="flex flex-col">
-                <span className="font-bold text-slate-900">{item.customer_display}</span>
-                <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Verified Contact</span>
-              </div>
-            )
-          },
-          { header: 'Sentiment', accessor: (item) => renderSentiment(item.sentiment) },
-          { 
-            header: 'Duration', 
-            accessor: (item) => (
-              <span className="font-mono text-xs font-bold bg-slate-100 px-2 py-1 rounded">
-                {Math.floor(item.duration / 60)}:{(item.duration % 60).toString().padStart(2, '0')}
-              </span>
-            )
-          },
-          { 
-            header: 'Status', 
-            accessor: (item) => (
-              <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest ${
-                item.status === 'available' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-50 text-amber-700'
-              }`}>
-                {item.status}
-              </span>
-            )
-          },
-        ]}
+        emptyMessage="No recordings found"
+      />
+      <Pagination
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        hasNextPage={pagination.hasNextPage}
+        hasPrevPage={pagination.hasPrevPage}
+        onPageChange={handlePageChange}
+        onPrevPage={handlePrevPage}
+        onNextPage={handleNextPage}
       />
     </div>
   );
