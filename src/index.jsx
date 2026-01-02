@@ -5,17 +5,19 @@ import "./index.css";
 import App from "./App";
 
 // Handle 404.html redirects for GitHub Pages SPA routing
-// Extract path from query string if we came from 404.html redirect
+// Extract path from _redirect query parameter and update URL without reload
 (function() {
-  var search = window.location.search;
-  if (search && search.includes('?/')) {
-    // Extract path from query string (format: ?/path&other=params)
-    var path = search.slice(2).split('&')[0].replace(/~and~/g, '&');
-    var remainingSearch = search.slice(2).split('&').slice(1);
-    var newSearch = remainingSearch.length > 0 ? '?' + remainingSearch.join('&').replace(/~and~/g, '&') : '';
-    var newPath = '/app-launcher/' + path + newSearch + window.location.hash;
-    // Replace URL without reloading
-    window.history.replaceState({}, '', newPath);
+  var searchParams = new URLSearchParams(window.location.search);
+  var redirectPath = searchParams.get('_redirect');
+  if (redirectPath) {
+    // Decode and update URL without reloading (so React Router can handle it)
+    var decodedPath = decodeURIComponent(redirectPath);
+    window.history.replaceState({}, '', decodedPath);
+    // Remove _redirect from URL
+    searchParams.delete('_redirect');
+    var newSearch = searchParams.toString();
+    var cleanPath = decodedPath.split('?')[0] + (newSearch ? '?' + newSearch : '') + window.location.hash;
+    window.history.replaceState({}, '', cleanPath);
   }
 })();
 

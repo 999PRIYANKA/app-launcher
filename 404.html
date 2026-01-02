@@ -6,34 +6,31 @@
     <script type="text/javascript">
       // Single Page Apps for GitHub Pages
       // https://github.com/rafgraph/spa-github-pages
-      // This script takes the current url and converts the path and query
-      // string into just a query string, and then redirects the browser
-      // to the new url with only a query string and hash fragment,
-      // e.g., https://www.foo.com/one/two?a=b&c=d#qwe, becomes
-      // https://www.foo.com/404.html?/one/two&a=b~and~c=d#qwe
-      // It then searches for a parent element that matches the path
-      // and redirects to that path with the query string and hash fragment.
       
       var pathSegmentsToKeep = 1; // Keep /app-launcher
       
       var l = window.location;
-      var redirect = l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-        '/app-launcher/404.html?/' +
-        l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
-        (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-        l.hash;
       
-      // Only redirect if we're not already processing a redirect
+      // Step 1: If we're not processing a redirect, capture the path and redirect to ourselves with query
       if (!l.search || !l.search.includes('?/')) {
+        var redirect = l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+          '/app-launcher/404.html?/' +
+          l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
+          (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+          l.hash;
         l.replace(redirect);
       } else {
-        // We're processing a redirect, extract path and redirect to it
+        // Step 2: We're processing a redirect, extract path and redirect to root (index.html)
+        // The JavaScript in index.html will then handle the routing
         var path = l.search.slice(2).split('&')[0].replace(/~and~/g, '&');
         var search = l.search.slice(2).split('&').slice(1).join('&').replace(/~and~/g, '&');
+        var finalPath = '/app-launcher/' + path;
         if (search) {
-          path += '?' + search;
+          finalPath += '?' + search;
         }
-        l.replace('/app-launcher/' + path + l.hash);
+        finalPath += l.hash;
+        // Redirect to root - index.html will handle the routing via history.replaceState
+        l.replace('/app-launcher/?_redirect=' + encodeURIComponent(finalPath));
       }
     </script>
   </head>
