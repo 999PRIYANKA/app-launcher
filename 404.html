@@ -5,25 +5,30 @@
     <title>Dwellio</title>
     <script type="text/javascript">
       // Single Page Apps for GitHub Pages
-      // Only redirect if we're not already processing a redirect
-      if (!window.location.search.includes('?/')) {
-        var pathSegmentsToKeep = 1;
-        var l = window.location;
-        var redirectPath = '/app-launcher/404.html?/' +
-          l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
-          (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-          l.hash;
-        window.location.replace(redirectPath);
-      } else {
-        // We're already processing a redirect, extract the path and go to index.html
-        var path = location.search.slice(2).split('&')[0].replace(/~and~/g, '&');
-        var search = location.search.slice(2).split('&').slice(1).join('&').replace(/~and~/g, '&');
-        if (search) {
-          path += '?' + search;
-        }
-        // Redirect to index.html with the path
-        window.location.replace('/app-launcher/' + path + location.hash);
+      // Redirect all 404s to index.html with the path preserved
+      var pathSegmentsToKeep = 1;
+      var l = window.location;
+      
+      // Extract the path after /app-launcher/
+      var pathname = l.pathname;
+      var path = pathname.replace('/app-launcher', '').replace(/^\//, '');
+      
+      // If we're already on 404.html, extract path from query string
+      if (pathname.includes('404.html') && l.search) {
+        path = l.search.slice(2).split('&')[0].replace(/~and~/g, '&');
       }
+      
+      // Build the redirect URL
+      var redirectUrl = '/app-launcher/' + (path || '');
+      if (l.search && !pathname.includes('404.html')) {
+        redirectUrl += l.search;
+      }
+      if (l.hash) {
+        redirectUrl += l.hash;
+      }
+      
+      // Redirect to index.html (which will be served as the root)
+      window.location.replace(redirectUrl);
     </script>
   </head>
   <body>
