@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "node deploy.js",
+    "deploy:push": "node deploy.js && git add . && git commit -m \"Deploy latest changes\" && git push origin main",
+    "restore-dev": "node restore-dev.js"
   },
   "dependencies": {
     "@chakra-ui/avatar": "^2.3.0",

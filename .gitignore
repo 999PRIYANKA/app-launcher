@@ -4,6 +4,9 @@ node_modules/
 # Build output
 dist/
 
+# Dev backup (don't commit this)
+index.html.dev
+
 # Track source files and deployment assets
 !src/
 !assets/
