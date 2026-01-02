@@ -21,6 +21,6 @@ export default defineConfig(({ command }) => ({
       }
     }
   ],
-  base: command === "build" ? "/app-launcher/" : "/",
+  base: "/",
 }));
 
