@@ -5,25 +5,28 @@
     <title>Dwellio</title>
     <script type="text/javascript">
       // Single Page Apps for GitHub Pages
-      var pathSegmentsToKeep = 1;
-      var l = window.location;
-      l.replace(
-        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-        '/app-launcher/404.html?/' +
-        l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
-        (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-        l.hash
-      );
+      // Only redirect if we're not already processing a redirect
+      if (!window.location.search.includes('?/')) {
+        var pathSegmentsToKeep = 1;
+        var l = window.location;
+        var redirectPath = '/app-launcher/404.html?/' +
+          l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
+          (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+          l.hash;
+        window.location.replace(redirectPath);
+      } else {
+        // We're already processing a redirect, extract the path and go to index.html
+        var path = location.search.slice(2).split('&')[0].replace(/~and~/g, '&');
+        var search = location.search.slice(2).split('&').slice(1).join('&').replace(/~and~/g, '&');
+        if (search) {
+          path += '?' + search;
+        }
+        // Redirect to index.html with the path
+        window.location.replace('/app-launcher/' + path + location.hash);
+      }
     </script>
   </head>
   <body>
-    <script type="text/javascript">
-      var path = location.search.slice(1).split('&')[0].replace(/~and~/g, '&');
-      var search = location.search.slice(1).split('&').slice(1).join('&').replace(/~and~/g, '&');
-      if (search) {
-        path += '?' + search;
-      }
-      location.replace('/app-launcher/' + path + location.hash);
-    </script>
+    <p>Redirecting...</p>
   </body>
 </html>
