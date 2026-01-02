@@ -5,35 +5,38 @@
     <title>Dwellio</title>
     <script type="text/javascript">
       // Single Page Apps for GitHub Pages
-      // Only process if we're not already in a redirect loop
-      if (!window.location.search.includes('?/')) {
-        var pathSegmentsToKeep = 1;
-        var l = window.location;
-        var path = l.pathname.replace('/app-launcher', '').replace(/^\//, '') || '';
-        
-        // Redirect to 404.html with path in query string
-        var redirectUrl = '/app-launcher/404.html?/' + path.replace(/&/g, '~and~');
-        if (l.search) {
-          redirectUrl += '&' + l.search.slice(1).replace(/&/g, '~and~');
-        }
-        if (l.hash) {
-          redirectUrl += l.hash;
-        }
-        window.location.replace(redirectUrl);
-      } else {
-        // Extract path from query and redirect to index.html
-        var path = location.search.slice(2).split('&')[0].replace(/~and~/g, '&');
-        var search = location.search.slice(2).split('&').slice(1).join('&').replace(/~and~/g, '&');
-        var finalPath = '/app-launcher/' + path;
-        if (search) {
-          finalPath += '?' + search;
-        }
-        finalPath += location.hash;
-        window.location.replace(finalPath);
+      // Simple redirect to index.html with current path
+      
+      // Get current path, removing /app-launcher prefix if present
+      var path = window.location.pathname;
+      path = path.replace(/^\/app-launcher/, '').replace(/^\/404\.html$/, '') || '';
+      
+      // Get search and hash
+      var search = window.location.search;
+      var hash = window.location.hash;
+      
+      // Build redirect URL - always go to /app-launcher/ (index.html)
+      var redirectUrl = '/app-launcher/' + path.replace(/^\//, '');
+      
+      // Only add search/hash if they exist and we're not in a loop
+      if (search && !search.includes('?/')) {
+        redirectUrl += search;
       }
+      if (hash) {
+        redirectUrl += hash;
+      }
+      
+      // Redirect immediately
+      window.location.replace(redirectUrl);
     </script>
   </head>
   <body>
     <p>Redirecting...</p>
+    <script type="text/javascript">
+      // Fallback: if script above didn't work, try again after a short delay
+      setTimeout(function() {
+        window.location.replace('/app-launcher/');
+      }, 100);
+    </script>
   </body>
 </html>
