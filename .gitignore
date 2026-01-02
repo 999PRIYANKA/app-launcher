@@ -1,3 +1,11 @@
+# Ignore everything
 *
-!dist/
+
+# Allow deployed site files
+!index.html
+!assets/
+!assets/**
+!404.html
+
+# Allow gitignore itself
 !.gitignore
