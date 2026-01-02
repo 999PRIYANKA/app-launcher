@@ -5,13 +5,32 @@
     <title>Dwellio</title>
     <script type="text/javascript">
       // Single Page Apps for GitHub Pages
-      // Redirect all 404s to index.html with the path preserved
-      var path = window.location.pathname;
-      var search = window.location.search;
-      var hash = window.location.hash;
-      
-      // Redirect to index.html with the current path
-      window.location.replace('/' + path.replace(/^\//, '') + search + hash);
+      // Only process if we're not already in a redirect loop
+      if (!window.location.search.includes('?/')) {
+        var pathSegmentsToKeep = 1;
+        var l = window.location;
+        var path = l.pathname.replace('/app-launcher', '').replace(/^\//, '') || '';
+        
+        // Redirect to 404.html with path in query string
+        var redirectUrl = '/app-launcher/404.html?/' + path.replace(/&/g, '~and~');
+        if (l.search) {
+          redirectUrl += '&' + l.search.slice(1).replace(/&/g, '~and~');
+        }
+        if (l.hash) {
+          redirectUrl += l.hash;
+        }
+        window.location.replace(redirectUrl);
+      } else {
+        // Extract path from query and redirect to index.html
+        var path = location.search.slice(2).split('&')[0].replace(/~and~/g, '&');
+        var search = location.search.slice(2).split('&').slice(1).join('&').replace(/~and~/g, '&');
+        var finalPath = '/app-launcher/' + path;
+        if (search) {
+          finalPath += '?' + search;
+        }
+        finalPath += location.hash;
+        window.location.replace(finalPath);
+      }
     </script>
   </head>
   <body>
