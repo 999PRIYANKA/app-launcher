@@ -5,38 +5,37 @@
     <title>Dwellio</title>
     <script type="text/javascript">
       // Single Page Apps for GitHub Pages
-      // Simple redirect to index.html with current path
+      // https://github.com/rafgraph/spa-github-pages
+      // This script takes the current url and converts the path and query
+      // string into just a query string, and then redirects the browser
+      // to the new url with only a query string and hash fragment,
+      // e.g., https://www.foo.com/one/two?a=b&c=d#qwe, becomes
+      // https://www.foo.com/404.html?/one/two&a=b~and~c=d#qwe
+      // It then searches for a parent element that matches the path
+      // and redirects to that path with the query string and hash fragment.
       
-      // Get current path, removing /app-launcher prefix if present
-      var path = window.location.pathname;
-      path = path.replace(/^\/app-launcher/, '').replace(/^\/404\.html$/, '') || '';
+      var pathSegmentsToKeep = 1; // Keep /app-launcher
       
-      // Get search and hash
-      var search = window.location.search;
-      var hash = window.location.hash;
+      var l = window.location;
+      var redirect = l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+        '/app-launcher/404.html?/' +
+        l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
+        (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+        l.hash;
       
-      // Build redirect URL - always go to /app-launcher/ (index.html)
-      var redirectUrl = '/app-launcher/' + path.replace(/^\//, '');
-      
-      // Only add search/hash if they exist and we're not in a loop
-      if (search && !search.includes('?/')) {
-        redirectUrl += search;
+      // Only redirect if we're not already processing a redirect
+      if (!l.search || !l.search.includes('?/')) {
+        l.replace(redirect);
+      } else {
+        // We're processing a redirect, extract path and redirect to it
+        var path = l.search.slice(2).split('&')[0].replace(/~and~/g, '&');
+        var search = l.search.slice(2).split('&').slice(1).join('&').replace(/~and~/g, '&');
+        if (search) {
+          path += '?' + search;
+        }
+        l.replace('/app-launcher/' + path + l.hash);
       }
-      if (hash) {
-        redirectUrl += hash;
-      }
-      
-      // Redirect immediately
-      window.location.replace(redirectUrl);
     </script>
   </head>
-  <body>
-    <p>Redirecting...</p>
-    <script type="text/javascript">
-      // Fallback: if script above didn't work, try again after a short delay
-      setTimeout(function() {
-        window.location.replace('/app-launcher/');
-      }, 100);
-    </script>
-  </body>
+  <body></body>
 </html>
