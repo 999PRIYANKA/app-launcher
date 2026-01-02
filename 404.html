@@ -3,29 +3,27 @@
   <head>
     <meta charset="utf-8">
     <title>Dwellio</title>
-    <script>
+    <script type="text/javascript">
       // Single Page Apps for GitHub Pages
-      // Redirects all 404s to index.html with the path preserved
       var pathSegmentsToKeep = 1;
-
       var l = window.location;
-      var redirectPath = '/app-launcher/404.html?/' + 
-        l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') + 
-        (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') + 
-        l.hash;
-      
-      // If we're already on a 404 page with a query, redirect to index.html
-      if (l.pathname.includes('404.html') && l.search) {
-        var path = l.search.slice(2).split('&')[0].replace(/~and~/g, '&');
-        var search = l.search.slice(2).split('&').slice(1).join('&').replace(/~and~/g, '&');
-        if (search) {
-          path += '?' + search;
-        }
-        window.location.replace('/app-launcher/' + path + l.hash);
-      } else {
-        window.location.replace(redirectPath);
-      }
+      l.replace(
+        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+        '/app-launcher/404.html?/' +
+        l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
+        (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+        l.hash
+      );
     </script>
   </head>
-  <body></body>
+  <body>
+    <script type="text/javascript">
+      var path = location.search.slice(1).split('&')[0].replace(/~and~/g, '&');
+      var search = location.search.slice(1).split('&').slice(1).join('&').replace(/~and~/g, '&');
+      if (search) {
+        path += '?' + search;
+      }
+      location.replace('/app-launcher/' + path + location.hash);
+    </script>
+  </body>
 </html>
