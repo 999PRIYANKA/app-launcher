@@ -29,21 +29,21 @@ function Header({ setSidebarOpen, title, onRecordPayment, onRecordExpense }) {
         <div className="hidden sm:flex items-center space-x-2">
             <button 
                 onClick={onRecordPayment}
-                className="flex items-center bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold px-4 py-2 rounded-md text-sm"
+                className="flex items-center bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold px-4 py-2 rounded-md text-sm border border-gray-200"
             >
-                <Icons.RecordPaymentIcon className="mr-2" />
+                <Icons.RecordPaymentIcon className="mr-2 w-5 h-5" />
                 Record Payment
             </button>
             <button 
                 onClick={onRecordExpense}
-                className="flex items-center bg-red-50 hover:bg-red-100 text-red-700 font-semibold px-4 py-2 rounded-md text-sm border border-red-200"
+                className="flex items-center bg-red-100 hover:bg-red-200 text-red-700 font-semibold px-4 py-2 rounded-md text-sm border border-red-200"
             >
                 <Icons.ExpensesIcon className="mr-2 w-5 h-5" />
                 Record Expense
             </button>
             {title === 'Dashboard' && (
-              <button className="flex items-center bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-md text-sm">
-                  <Icons.AddTenantIcon className="mr-2" />
+              <button className="flex items-center bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold px-4 py-2 rounded-md text-sm border border-blue-200">
+                  <Icons.AddTenantIcon className="mr-2 w-5 h-5" />
                   Add Tenant
               </button>
             )}
