@@ -125,110 +125,160 @@ function Sidebar({ sidebarOpen, setSidebarOpen, currentApp = 'Property', onSwitc
       }
     };
     
+    const isActive = activeItem === item.name;
+    
     return (
       <a
         key={item.name}
         href="#"
-        className={`flex items-center py-3 text-sm font-medium transition-colors duration-200 relative 
-        ${isNested ? 'pl-14 pr-6' : 'px-6'} 
-        ${
-          activeItem === item.name
-            ? 'text-white bg-brand-dark-blue-light'
-            : 'text-gray-400 hover:text-white hover:bg-brand-dark-blue-light'
-        }`}
+        className="flex items-center font-medium relative"
+        style={{
+          display: "flex",
+          fontSize: isNested ? "12px" : "14px",
+          alignItems: "center",
+          gap: "12px",
+          paddingLeft: isNested ? "12px" : (isActive ? "20px" : "16px"),
+          paddingRight: isActive ? "20px" : "16px",
+          paddingTop: isNested ? "6px" : "10px",
+          paddingBottom: isNested ? "6px" : "10px",
+          borderRadius: isNested ? "6px" : "8px",
+          transition: "all 0.25s ease",
+          color: isActive ? "white" : "#4B5563",
+          backgroundColor: isActive ? "#3B82F6" : "transparent",
+          textDecoration: "none",
+          marginBottom: isNested ? "4px" : "0",
+        }}
+        onMouseEnter={(e) => {
+          if (!isActive) {
+            e.currentTarget.style.backgroundColor = "#F3F4F6";
+            e.currentTarget.style.color = "#1F2937";
+          } else {
+            e.currentTarget.style.paddingLeft = isNested ? "12px" : "20px";
+            e.currentTarget.style.paddingRight = "20px";
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!isActive) {
+            e.currentTarget.style.backgroundColor = "transparent";
+            e.currentTarget.style.color = "#4B5563";
+          } else {
+            e.currentTarget.style.paddingLeft = isNested ? "12px" : "20px";
+            e.currentTarget.style.paddingRight = "20px";
+          }
+        }}
         onClick={handleClick}
       >
-        {item.icon}
-        <span className="ml-4">{item.name}</span>
-        {activeItem === item.name && (
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-l-8 border-l-gray-50"></div>
-        )}
+        <span className="flex-shrink-0" style={{ display: "flex", alignItems: "center" }}>
+          {item.icon}
+        </span>
+        <span>{item.name}</span>
       </a>
     );
   };
 
   return (
     <>
-    <div className={`fixed inset-y-0 left-0 z-30 w-64 bg-brand-dark-blue transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out`}
+    <div className={`fixed inset-y-0 left-0 z-30 w-72 bg-white transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out`}
     onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside the sidebar
     >
-        <div className="flex flex-col h-full bg-brand-dark-blue">
+        <div className={`fixed top-0 left-0 h-screen w-72 bg-white text-gray-700 flex flex-col shadow-xl border-r border-gray-200 transform transition-transform duration-300 z-100 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
             {/* Header Area with App Launcher */}
-            <div className="flex items-center px-6 py-5 text-white">
+            <div className="flex items-center px-6 py-5 text-gray-900">
                 <button 
                     onClick={() => setIsLauncherOpen(true)}
-                    className="mr-3 p-1.5 rounded-md hover:bg-white/10 text-gray-300 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-white/20"
+                    className="mr-3 p-1.5 rounded-md hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-200"
                     title="App Launcher"
                 >
                     <Icons.AppGridIcon className="w-6 h-6" />
                 </button>
-                <div className="flex items-center text-xl font-bold cursor-default">
+                <div className="flex items-center text-xl font-bold cursor-default text-gray-900">
                     <Icons.LogoIcon className="w-7 h-7 text-brand-teal" /> 
                     <span className="ml-2">Dwellio</span>
                 </div>
             </div>
 
-            <div className="px-6 pb-6 text-center text-white">
+            <div className="px-6 pb-6 text-center text-gray-900">
                 <div className="w-16 h-16 mx-auto bg-brand-teal/20 rounded-full flex items-center justify-center text-2xl font-bold mb-2 border-2 border-brand-teal text-brand-teal">DW</div>
-                <h3 className="font-semibold text-sm">Dustin Wyatt</h3>
-                <p className="text-xs text-gray-400">{currentApp === 'HardMoney' ? 'Lending' : currentApp} App</p>
+                <h3 className="font-semibold text-sm text-gray-900">Dustin Wyatt</h3>
+                <p className="text-xs text-gray-600">{currentApp === 'HardMoney' ? 'Lending' : currentApp} App</p>
             </div>
             <nav className="flex-1 overflow-y-auto py-2">
               {navSections.map((section, sectionIndex) => {
                 // Sections with titles are collapsible, sections without titles are always open
                 const isOpen = section.title ? (openSection === section.title) : true;
+                
+                // Check if any item in this section is active
+                const isSectionActive = section.items?.some(item => activeItem === item.name);
 
                 return (
-                  <div key={sectionIndex}>
+                  <div key={sectionIndex} className={sectionIndex > 0 ? "mt-2" : ""}>
                     {section.title ? (
                       <div 
-                        className={`
-                            flex items-center justify-between cursor-pointer transition-colors duration-200 py-2
-                            ${isOpen 
-                                ? "px-6 mt-4 mb-2 text-xs font-semibold text-white uppercase tracking-wider bg-brand-dark-blue-light bg-opacity-20" 
-                                : "px-6 mt-4 mb-2 text-xs font-semibold text-gray-500 group hover:text-gray-300 uppercase tracking-wider"
-                            }
-                        `}
+                        className={`flex items-center gap-3 px-4 py-2 rounded-lg mb-1 text-sm font-medium cursor-pointer transition-all duration-250 ${
+                          isSectionActive
+                            ? "bg-blue-500 text-white"
+                            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                        }`}
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
                           toggleSection(section.title);
                         }}
                       >
-                          <div className="flex items-center">
-                              {section.icon && (
-                                  <span className={`mr-4 ${isOpen ? 'text-white' : 'text-gray-500 group-hover:text-gray-300'}`}>{section.icon}</span>
-                              )}
-                              <span>{section.title}</span>
-                          </div>
-                          
-                          <Icons.ChevronRightIcon 
-                            className={`w-4 h-4 transition-transform duration-200 
-                                ${isOpen ? 'rotate-90 text-white' : 'text-gray-500 group-hover:text-gray-300'}
-                            `} 
-                          />
+                          {section.icon && (
+                            <span className="flex-shrink-0" style={{ display: "flex", alignItems: "center" }}>
+                              {section.icon}
+                            </span>
+                          )}
+                          <span style={{ fontSize: "0.875rem" }} className="flex-1">
+                            {section.title}
+                          </span>
+                          <svg 
+                            className={`transition-transform duration-250 flex-shrink-0 ${
+                              isSectionActive ? "text-white" : "text-gray-400"
+                            } ${isOpen ? "rotate-90" : "rotate-0"}`}
+                            style={{ width: "10px", height: "10px" }}
+                            xmlns="http://www.w3.org/2000/svg" 
+                            fill="none" 
+                            viewBox="0 0 24 24" 
+                            stroke="currentColor" 
+                            strokeWidth={2}
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                          </svg>
                       </div>
                     ) : (
                         sectionIndex > 0 && <div className="mt-4"></div>
                     )}
                     
-                    <div className={`space-y-1 overflow-hidden transition-all duration-300 ${!section.title || isOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                      {section.items.map((item) => <NavLink key={item.name} item={item} isNested={!!section.title} />)}
+                    <div className={`overflow-hidden transition-all duration-300 ease-in-out ${!section.title || isOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+                      <ul className="py-2 space-y-1">
+                        {section.items.map((item) => (
+                          <li key={item.name} className={section.title ? "pl-4" : ""}>
+                            <NavLink item={item} isNested={!!section.title} />
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   </div>
                 );
               })}
             </nav>
-            <div className="flex items-center justify-around p-4 border-t border-gray-700 bg-black/10">
+            <div className="flex items-center justify-around p-4 border-t border-gray-200 bg-white">
               {bottomIcons.map(item => (
-                <a href="#" key={item.name} className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-full">
+                <a 
+                  href="#" 
+                  key={item.name} 
+                  className="text-gray-600 hover:text-gray-900 transition-colors p-2 hover:bg-gray-100 rounded-lg"
+                  style={{ fontSize: "0.875rem" }}
+                >
                   {item.icon}
                 </a>
               ))}
             </div>
         </div>
     </div>
-    {sidebarOpen && <div className="fixed inset-0 bg-black bg-opacity-50 z-20" onClick={() => setSidebarOpen(false)}></div>}
+    {sidebarOpen && <div className="fixed inset-0 bg-black bg-opacity-30 z-20" onClick={() => setSidebarOpen(false)}></div>}
     
     {/* App Launcher Modal */}
     <AppLauncherModal 
@@ -238,7 +288,7 @@ function Sidebar({ sidebarOpen, setSidebarOpen, currentApp = 'Property', onSwitc
     />
     </>
   );
-}
+};
 
 export default Sidebar;
 
